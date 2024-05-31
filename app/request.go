@@ -25,7 +25,7 @@ func NewRequest(requestBytes []byte) Request {
 	headers := make(map[string]string)
 	for _, header := range lineHeader[1:] {
 		headerParts := strings.SplitN(header, ": ", 2)
-		headers[headerParts[0]] = headerParts[1]
+		headers[strings.ToLower(headerParts[0])] = headerParts[1]
 	}
 	status := RequestLine{
 		method:  statusStrings[0],

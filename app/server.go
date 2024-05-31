@@ -47,7 +47,7 @@ func respond(conn net.Conn) {
 		}
 		response.body = []byte(echo)
 	case strings.HasPrefix(request.line.path, "/user-agent"):
-		body := request.headers["User-Agent"]
+		body := request.headers["user-agent"]
 		response.body = []byte(body)
 		response.headers = map[string]string{
 			"Content-Type":   "text/plain",
