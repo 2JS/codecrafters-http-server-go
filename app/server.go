@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"flag"
 	"fmt"
 	"net"
@@ -54,18 +56,35 @@ func respond(conn net.Conn) {
 
 func handleEcho(request *Request, response *Response) {
 	echo := strings.TrimPrefix(request.line.path, "/echo/")
-	response.headers = map[string]string{
-		"Content-Type":   "text/plain",
-		"Content-Length": fmt.Sprint(len(echo)),
-	}
-	encodings := strings.Split(request.headers["accept-encoding"], ", ")
-	for _, encoding := range encodings {
-		if encoding == "gzip" {
-			response.headers["Content-Encoding"] = "gzip"
-			break
+
+	encoding := func() string {
+		encodings := strings.Split(request.headers["accept-encoding"], ", ")
+		for _, encoding := range encodings {
+			switch encoding {
+			case "gzip":
+				return encoding
+			default:
+			}
 		}
+		return ""
+	}()
+
+	response.headers = map[string]string{
+		"Content-Type": "text/plain",
 	}
-	response.body = []byte(echo)
+
+	switch encoding {
+	case "gzip":
+		var buffer bytes.Buffer
+		gzipWriter := gzip.NewWriter(&buffer)
+		gzipWriter.Write([]byte(echo))
+		gzipWriter.Close()
+		response.body = buffer.Bytes()
+		response.headers["Content-Encoding"] = "gzip"
+	case "":
+		response.body = []byte(echo)
+	}
+	response.headers["Content-Length"] = fmt.Sprint(len(response.body))
 }
 
 func handleUserAgent(request *Request, response *Response) {
