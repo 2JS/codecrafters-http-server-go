@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -23,9 +24,22 @@ func main() {
 	conn.Read(buff)
 	request := NewRequest(string(buff))
 
-	if request.line.path == "/" {
-		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-	} else {
-		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+	response := Response{status: NewStatus()}
+
+	switch {
+	case request.line.path == "/":
+		break
+	case strings.HasPrefix(request.line.path, "/echo"):
+		echo := strings.TrimPrefix(request.line.path, "/echo/")
+		response.headers = map[string]string{
+			"Content-Type":   "text/plain",
+			"Content-Length": fmt.Sprint(len(echo)),
+		}
+		response.body = echo
+	default:
+		response.status.code = 404
+		response.status.message = "Not Found"
 	}
+
+	conn.Write([]byte(response.String()))
 }
