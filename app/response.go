@@ -5,7 +5,7 @@ import "fmt"
 type Response struct {
 	status  Status
 	headers map[string]string
-	body    string
+	body    []byte
 }
 
 type Status struct {
@@ -32,6 +32,21 @@ func (response Response) String() string {
 		response.status,
 		headerString,
 		response.body,
+	)
+}
+
+func (response Response) Bytes() []byte {
+	headerString := ""
+	for key, value := range response.headers {
+		headerString += fmt.Sprintf("%s: %s\r\n", key, value)
+	}
+	return append(
+		[]byte(fmt.Sprintf(
+			"%s\r\n%s\r\n",
+			response.status,
+			headerString,
+		)),
+		response.body...,
 	)
 }
 
