@@ -58,11 +58,12 @@ func handleEcho(request *Request, response *Response) {
 		"Content-Type":   "text/plain",
 		"Content-Length": fmt.Sprint(len(echo)),
 	}
-	switch request.headers["accept-encoding"] {
-	case "gzip":
-		response.headers["Content-Encoding"] = "gzip"
-	default:
-		break
+	encodings := strings.Split(request.headers["accept-encoding"], ", ")
+	for _, encoding := range encodings {
+		if encoding == "gzip" {
+			response.headers["Content-Encoding"] = "gzip"
+			break
+		}
 	}
 	response.body = []byte(echo)
 }
