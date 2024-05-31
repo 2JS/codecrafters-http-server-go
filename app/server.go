@@ -36,6 +36,13 @@ func main() {
 			"Content-Length": fmt.Sprint(len(echo)),
 		}
 		response.body = echo
+	case strings.HasPrefix(request.line.path, "/user-agent"):
+		body := request.headers["User-Agent"]
+		response.body = body
+		response.headers = map[string]string{
+			"Content-Type":   "text/plain",
+			"Content-Length": fmt.Sprint(len(body)),
+		}
 	default:
 		response.status.code = 404
 		response.status.message = "Not Found"
