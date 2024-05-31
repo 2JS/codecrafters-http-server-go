@@ -32,7 +32,7 @@ func main() {
 func respond(conn net.Conn) {
 	buff := make([]byte, 1024)
 	conn.Read(buff)
-	request := NewRequest(string(buff))
+	request := NewRequest(buff)
 
 	response := Response{status: NewStatus()}
 
@@ -55,28 +55,40 @@ func respond(conn net.Conn) {
 		}
 	case strings.HasPrefix(request.line.path, "/files"):
 		filePath := strings.TrimPrefix(request.line.path, "/files/")
-		dirEntries, _ := os.ReadDir(*directoryFlag)
+		absolutePath := fmt.Sprintf("%s/%s", *directoryFlag, filePath)
+		switch request.line.method {
+		case "GET":
+			dirEntries, _ := os.ReadDir(*directoryFlag)
 
-		dirEntry := func() os.DirEntry {
-			for _, dirEntry := range dirEntries {
-				if dirEntry.Name() == filePath {
-					return dirEntry
+			dirEntry := func() os.DirEntry {
+				for _, dirEntry := range dirEntries {
+					if dirEntry.Name() == filePath {
+						return dirEntry
+					}
 				}
+				return nil
+			}()
+
+			if dirEntry == nil {
+				response.status.code = 404
+				response.status.message = "Not Found"
+				break
 			}
-			return nil
-		}()
 
-		if dirEntry == nil {
-			response.status.code = 404
-			response.status.message = "Not Found"
-			break
-		}
-
-		file, _ := os.ReadFile(fmt.Sprintf("%s/%s", *directoryFlag, filePath))
-		response.body = file
-		response.headers = map[string]string{
-			"Content-Type":   "application/octet-stream",
-			"Content-Length": fmt.Sprint(len(file)),
+			file, _ := os.ReadFile(absolutePath)
+			response.body = file
+			response.headers = map[string]string{
+				"Content-Type":   "application/octet-stream",
+				"Content-Length": fmt.Sprint(len(file)),
+			}
+		case "POST":
+			file, _ := os.Create(absolutePath)
+			file.Write(request.body)
+			response.status.code = 201
+			response.status.message = "Created"
+		default:
+			response.status.code = 405
+			response.status.message = "Method Not Allowed"
 		}
 
 	default:
